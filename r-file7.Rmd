@@ -1,0 +1,192 @@
+---
+title: "Practice assignment 7"
+author: "e2u"
+date: "15/12/2021"
+output: html_document
+---
+
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(RColorBrewer)
+library(gridExtra)
+library(vioplot)
+
+```
+```{r}
+titanic <- read.csv("titanic.csv")
+head(titanic)
+```
+
+```{r}
+#NA's, missing values and summary
+
+colSums(is.na(titanic))
+summary(titanic)
+colSums(titanic=="")
+```
+```{r}
+#Bar plot of gender
+ggplot(titanic) + geom_bar(aes(x = Sex, fill = Sex))
+```
+Bar plot of ticket class
+```{r}
+#converts Pclass to categorical variable
+titanic$Pclass <- as.factor(titanic$Pclass)
+head(titanic)
+```
+
+```{r}
+#Bar plot of ticket class 
+ggplot(titanic) + geom_bar(aes(x = Pclass, fill = Pclass))
+
+```
+
+Bar plot of Survival 
+```{r}
+#converts Survival to categorical variable
+titanic$Survived <- as.factor(titanic$Survived)
+
+```
+
+```{r}
+#Bar plot of Survived
+ggplot(titanic) + geom_bar(aes(x = Survived, fill = Survived))
+
+```
+
+¤ Question 2:
+```{r}
+#Histogram for passenger age with minimal theme
+
+ggplot(titanic, aes(x = Age, fill = Sex)) + 
+    geom_histogram()+
+    labs(title = "Histogram of passenger age", x = "Age", y = "Count") +
+    theme_minimal()
+```
+
+```{r}
+#density plot passenger age with minimal theme
+
+ggplot(titanic, aes(x = Age, fill = Sex)) + 
+    geom_density(alpha = .8) +
+    labs(title = "Density plot of passenger age", x = "Age", y = "Count") +
+    theme_minimal()
+```
+Describe the passengers' age with boxplots:
+
+```{r}
+#Boxplot for age per ticket class
+ggplot(titanic) + geom_boxplot(aes(x = Age, fill = Pclass)) +
+    labs(title = "Box plot of age per ticket class", x = "Age")
+```
+```{r}
+#Boxplot for age based on survival
+ggplot(titanic) + geom_boxplot(aes(x = Age, fill = Survived)) +
+    labs(title = "Box plot of age based on survival", x = "Age")
+```
+We could explore the data further for age ranges:
+```{r}
+#Create age categories
+categories<-c('0-10','10-20','20-30','30-40','40-50','50-60','60-70','70-80')
+titanic$Age_cat<-cut(titanic$Age, seq(0,80,10),labels=categories)
+Age_count<-table(titanic$Age_cat)
+Age_count
+```
+```{r}
+# we don't the exclude NA's as they represent ticket class of passengers without age data.
+
+ggplot(titanic) + geom_bar(position = "dodge") + 
+  aes(x = Age_cat, fill = Pclass) +
+  labs(title = "Bar plot of age per ticket class ", x = "Age", y = "Count")
+```
+Age based on survival:
+```{r}
+ggplot(titanic) + geom_bar(position = "dodge") + 
+    aes(x = Age_cat, fill = Survived)+
+    labs(title = "Bar plot of age per ticket class ", x = "Age", y = "Count")
+```
+
+Histogram for the travel fare and a table showing the number of
+people who did not pay
+```{r}
+ggplot(titanic, aes(x = Fare)) + 
+    geom_histogram()+
+    labs(title = "Histogram of Fare", x = "Price", y = "Count")
+```
+The histogram shows an extreme outlier, it seems like the passenger who paid 512.33(Lesurer, Mr. Gustave J) is either a mistake or have rented an very exclusive suite.
+A Google search revealed that Mr. Gustave J. lesueur was a servant for Thomas Cardeze, the suite was occupied by Thomas, his mother and two servants. 
+ref: [https://medium.com/silk-stories/women-and-children-first-9273e97289b0]
+
+
+
+Histogram and table showing no. of people who didn't pay
+
+```{r}
+#Add table of non paying travelers to the histogram
+Pas.count <- sum(titanic$Fare == "0")
+h2 <- cbind(c("Non paying passengers:"), Pas.count) 
+
+#Histogram
+ggplot(titanic, aes(x = Fare, color = Fare)) + 
+    geom_histogram(binwidth = 10)+
+    labs(title = "Histogram of Fare", x = "Price", y = "Count") + 
+    annotation_custom(tableGrob(h2), xmin=200, xmax=600, ymin=350, ymax=400)
+```
+
+
+A chart to describe the family size per ticket class
+
+```{r}
+titanic$Family_class <- titanic$SibSp + titanic$Parch+1
+ggplot(data = titanic[!is.na(titanic$Family_class),],aes(x=Family_class, fill=Pclass))+geom_bar(position = "dodge")+ scale_x_continuous(limits = c(2, 12), breaks = 2:12) + 
+labs(title = "Histogram of family size per ticket class", x = "Size", y = "Count")
+```
+We could also describe the family size and survival rate
+
+```{r}
+titanic$Family_class <- titanic$SibSp + titanic$Parch+1
+ggplot(data = titanic[!is.na(titanic$Family_class),],aes(x=Family_class, fill=Survived))+geom_bar(position = "dodge")+ scale_x_continuous(limits = c(2, 12), breaks = 2:12) + 
+labs(title = "Histogram of family size per survival", x = "Size", y = "Count")
+```
+
+Series of stacked bar charts to show the how survival differs for different
+gender and ticket class
+
+```{r}
+# with faceting  
+ggplot(titanic, aes(x = Pclass, fill = Survived)) +   
+    geom_bar() +   
+    facet_grid(. ~ Sex) +  
+    xlab("Passenger Class") +
+    ylab("Count") + 
+    scale_fill_manual("Survived", values = alpha( c("#F8766D", "#00BFC4")))
+    
+```
+
+It looks like that females on 1st and 2nd class had an good probability of survival, to demonstrate this we can divide Passenger class by gender to see the survival percentage:
+
+```{r}
+ggplot(titanic,aes(x=Pclass, fill=Survived))+geom_bar(position="fill")+
+  facet_wrap(~Sex)+xlab("Passengers Class")+
+  ylab("Percentage")
+```
+
+Violin chart describing how survival relates to age and gender
+```{r}
+ggplot(titanic, aes(x=Sex, y=Age, fill=Survived)) +
+  geom_violin()
+```
+Violin chart describing the survival rate related to age and ticket class
+```{r}
+ggplot(titanic, aes(x=Pclass, y=Age, fill=Survived)) +
+  geom_violin()
+```
+
+
+- Generally passengers on 1st and 2nd class were more likely to survive, indicating that the security might have been less on 3rd. class
+- Females were more likely than males to survive in each class. 
+- Males on 3rd. class was unlikely to survive.
+- Large family's were less likely to survive.
+- Passengers of 40+ age are more likely to survive on 1st. class than 3rd.
